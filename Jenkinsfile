@@ -4,26 +4,26 @@ pipeline {
         jdk 'java17'
         maven 'Maven3'
     }
-    stages ('cleanup workspace') {
-        steps {
-            cleanWs()
+    stages {
+        stage('cleanup workspace') {
+            steps {
+                cleanWs()
+            }
         }
-    }
-    stages ('Checkout from SCM') {
-        steps {
-            git branch: 'main', credentialsId: 'github-CRED', url: 'https://github.com/RanjeethAcharya/DevProject.git'
+        stage('Checkout from SCM') {
+            steps {
+                git branch: 'main', credentialsId: 'github-CRED', url: 'https://github.com/RanjeethAcharya/DevProject.git'
+            }
         }
-    }
-    stage("Build Application"){
-        steps {
-            sh "mvn clean package"
+        stage("Build Application") {
+            steps {
+                sh "mvn clean package"
+            }
         }
-
-    }
-
-    stage("Test Application"){
-        steps {
-            sh "mvn test"
+        stage("Test Application") {
+            steps {
+                sh "mvn test"
+            }
         }
     }
 }
