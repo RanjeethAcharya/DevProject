@@ -1,7 +1,7 @@
 pipeline {
     agent { label 'jen-agent' }
     tools {
-        jdk 'java17'
+        jdk 'Java17'
         maven 'Maven3'
     }
     stages {
