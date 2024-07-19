@@ -5,7 +5,7 @@ pipeline {
         maven 'Maven3'
     }
     stages {
-        stage('cleanup workspace') {
+        stage('Cleanup Workspace') {
             steps {
                 cleanWs()
             }
@@ -25,12 +25,21 @@ pipeline {
                 sh "mvn test"
             }
         }
-        stage("SonarQube analysis") {
+        stage("SonarQube Analysis") {
             steps {
                 script {
+                    // Execute SonarQube analysis
                     withSonarQubeEnv(credentialsId: "sonarqube") {
                         sh "mvn sonar:sonar"
                     }
+                }
+            }
+        }
+        stage("Quality Gate") {
+            steps {
+                script {
+                    // Wait for SonarQube Quality Gate
+                    waitForQualityGate abortPipeline: false, credentialsId: 'sonarqube'
                 }
             }
         }
