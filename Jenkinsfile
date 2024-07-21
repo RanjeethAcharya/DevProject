@@ -65,5 +65,24 @@ pipeline {
                 }
             }
         }
+	stage("Trivy Scan") {
+            steps {
+                script {
+                    // Run Trivy vulnerability scan
+                    sh "docker run -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image ${IMAGE_NAME}:${IMAGE_TAG} --no-progress --scanners vuln --exit-code 0 --severity HIGH,CRITICAL --format table"
+                }
+            }
+        }
+        stage("Cleanup artifacts") {
+            steps {
+                script {
+                    // Clean up Docker images
+                    docker.withRegistry('', DOCKER_PASS) {
+                        docker.image("${IMAGE_NAME}:${IMAGE_TAG}").remove()
+                        docker.image("${IMAGE_NAME}:latest").remove()
+                    }
+                }
+            }
+        }
     }
 }
