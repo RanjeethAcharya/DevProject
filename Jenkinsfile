@@ -6,7 +6,7 @@ pipeline {
     }
     environment {
 	    APP_NAME = "register-app-pipeline"
-            RELEASE = "1.0.0"
+            RELEASE = "1.0.0-9"
             DOCKER_USER = "ranjeeth3302"
             DOCKER_PASS = 'dockerhub'
             IMAGE_NAME = "${DOCKER_USER}" + "/" + "${APP_NAME}"
