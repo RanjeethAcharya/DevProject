@@ -10,10 +10,10 @@ pipeline {
         APP_NAME = "register-app-pipeline"
         RELEASE = "1.0.0"
         DOCKER_USER = "ranjeeth3302"
-        DOCKER_PASS = 'dockerhub'
+        DOCKER_PASS = credentials('dockerhub')
         IMAGE_NAME = "${DOCKER_USER}/${APP_NAME}"
         IMAGE_TAG = "${RELEASE}-${BUILD_NUMBER}"
-	JENKINS_API_TOKEN = credentials("JENKINS_API_TOKEN")
+        JENKINS_API_TOKEN = credentials("JENKINS_API_TOKEN")
     }
     stages {
         stage('Cleanup Workspace') {
@@ -39,7 +39,6 @@ pipeline {
         stage("SonarQube Analysis") {
             steps {
                 script {
-                    // Execute SonarQube analysis
                     withSonarQubeEnv(credentialsId: "sonarqube") {
                         sh "mvn sonar:sonar"
                     }
@@ -49,7 +48,6 @@ pipeline {
         stage("Quality Gate") {
             steps {
                 script {
-                    // Wait for SonarQube Quality Gate
                     waitForQualityGate abortPipeline: false, credentialsId: 'sonarqube'
                 }
             }
@@ -58,10 +56,7 @@ pipeline {
             steps {
                 script {
                     docker.withRegistry('', DOCKER_PASS) {
-                        docker_image = docker.build "${IMAGE_NAME}"
-                    }
-
-                    docker.withRegistry('', DOCKER_PASS) {
+                        def docker_image = docker.build("${IMAGE_NAME}:${IMAGE_TAG}")
                         docker_image.push("${IMAGE_TAG}")
                         docker_image.push('latest')
                     }
@@ -71,7 +66,6 @@ pipeline {
         stage("Trivy Scan") {
             steps {
                 script {
-                    // Run Trivy vulnerability scan
                     sh "docker run -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image ${IMAGE_NAME}:${IMAGE_TAG} --no-progress --scanners vuln --exit-code 0 --severity HIGH,CRITICAL --format table"
                 }
             }
@@ -79,34 +73,31 @@ pipeline {
         stage("Cleanup artifacts") {
             steps {
                 script {
-                    // Clean up Docker images
-                    docker.withRegistry('', DOCKER_PASS) {
-                        docker.image("${IMAGE_NAME}:${IMAGE_TAG}").remove()
-                        docker.image("${IMAGE_NAME}:latest").remove()
-                    }
+                    sh "docker rmi ${IMAGE_NAME}:${IMAGE_TAG} || true"
+                    sh "docker rmi ${IMAGE_NAME}:latest || true"
                 }
             }
         }
         stage("Trigger CD Pipeline") {
             steps {
                 script {
-                    sh "curl -v -k --user admin:${JENKINS_API_TOKEN} -X POST -H 'cache-control: no-cache' -H 'content-type: application/x-www-form-urlencoded' --data 'IMAGE_TAG=${IMAGE_TAG}' 'ec2-54-83-173-110.compute-1.amazonaws.com:8080/job/register-app-cd/buildWithParameters?token=gitops-token'"
+                    sh "curl -v -k --user admin:${JENKINS_API_TOKEN} -X POST -H 'cache-control: no-cache' -H 'content-type: application/x-www-form-urlencoded' --data 'IMAGE_TAG=${IMAGE_TAG}' 'http://ec2-54-83-173-110.compute-1.amazonaws.com:8080/job/register-app-cd/buildWithParameters?token=gitops-token'"
                 }
             }
         }
     }
     // post {
     //     failure {
-    //         emailext body: '''${SCRIPT, template="groovy-html.template"}''', 
-    //                  subject: "${env.JOB_NAME} - Build # ${env.BUILD_NUMBER} - Failed", 
+    //         emailext body: '''${SCRIPT, template="groovy-html.template"}''',
+    //                  subject: "${env.JOB_NAME} - Build # ${env.BUILD_NUMBER} - Failed",
     //                  mimeType: 'text/html',
     //                  to: "ranjeethacharya3302@gmail.com"
     //     }
     //     success {
-    //         emailext body: '''${SCRIPT, template="groovy-html.template"}''', 
-    //                  subject: "${env.JOB_NAME} - Build # ${env.BUILD_NUMBER} - Successful", 
+    //         emailext body: '''${SCRIPT, template="groovy-html.template"}''',
+    //                  subject: "${env.JOB_NAME} - Build # ${env.BUILD_NUMBER} - Successful",
     //                  mimeType: 'text/html',
     //                  to: "ranjeethacharya3302@gmail.com"
-    //     }      
+    //     }
     // }
 }
